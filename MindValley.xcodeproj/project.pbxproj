@@ -18,6 +18,7 @@
 		1DE239651DE8B7A600C72940 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DE239631DE8B7A600C72940 /* LaunchScreen.storyboard */; };
 		1DE239701DE8B7A600C72940 /* MindValleyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE2396F1DE8B7A600C72940 /* MindValleyTests.swift */; };
 		1DE2397B1DE8C08C00C72940 /* MVDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE2397A1DE8C08C00C72940 /* MVDownloader.swift */; };
+		1DFD0BF41DEC9AE400DA4446 /* MVCacheManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFD0BF31DEC9AE400DA4446 /* MVCacheManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 		1DE2396F1DE8B7A600C72940 /* MindValleyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindValleyTests.swift; sourceTree = "<group>"; };
 		1DE239711DE8B7A600C72940 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1DE2397A1DE8C08C00C72940 /* MVDownloader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MVDownloader.swift; sourceTree = "<group>"; };
+		1DFD0BF31DEC9AE400DA4446 /* MVCacheManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MVCacheManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +104,7 @@
 			children = (
 				1DE2396F1DE8B7A600C72940 /* MindValleyTests.swift */,
 				1D0157391DE8C93700EA05D5 /* MVDownloaderTests.swift */,
+				1DFD0BF31DEC9AE400DA4446 /* MVCacheManagerTests.swift */,
 				1DE239711DE8B7A600C72940 /* Info.plist */,
 			);
 			path = MindValleyTests;
@@ -227,6 +230,7 @@
 				03C045B81DEBE5A800AD9233 /* MVCacheManager.swift in Sources */,
 				1DA37A6D1DE8C63200641BEB /* MVDownloader.swift in Sources */,
 				1D01573A1DE8C93700EA05D5 /* MVDownloaderTests.swift in Sources */,
+				1DFD0BF41DEC9AE400DA4446 /* MVCacheManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

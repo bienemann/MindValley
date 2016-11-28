@@ -12,9 +12,23 @@ class MVDownloader : NSObject {
     
     static let shared = MVDownloader()
     
+    let dlQueue = DispatchQueue(label: "com.mindvalley.downloader", qos: .background)
+    let dispatchGroup = DispatchGroup()
+    
+    var taskQueue = Array<DispatchWorkItem>()
+    var runningTasks = Array<DispatchWorkItem>()
+    var maxConcurrentDownloads = 10
+    
+    override init(){
+        super.init()
+    }
+    
     func download(url: URL, cache: Bool = true, invalidateAfter: Int = 60*3,
                   completion: @escaping (Data?, URLResponse?) -> Void,
                   error: @escaping (Error?) -> Void) -> Void {
+        
+        dispatchGroup.enter()
+        
         
         if (MVCacheManager.shared.contains(address:url.absoluteString)) {
             completion(MVCacheManager.shared.data(atURL: url), nil)
@@ -40,27 +54,17 @@ class MVDownloader : NSObject {
             }
             
             MVCacheManager.shared.insert(data: data!, url: url)
-            MVDownloader.shared.download(url: URL(string:"http://google.com")!, cache: true,  invalidateAfter: 0, completion: { (data, response) in
-                
-                }, error:{ (error) in
-                    
-            })
             
             print("\(response!)")
             print("\(data!)")
+            
+            
         }
         
-        task.resume()
-        
-    }
-    
-    func cache(response: URLResponse, data: Data, timeOut: Int) -> Bool {
-        
-        while data.count > 0 {
-            break;
+        dlQueue.async {
+            task.resume()
         }
         
-        return false
     }
     
 }

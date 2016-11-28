@@ -12,8 +12,8 @@ import Foundation
 class MVCacheManager: NSObject {
 
     private var cache = Cache<String, CachedObject>()
-    
     public static let shared = MVCacheManager()
+    
     public var config : CacheConfig {
         get{
             return self.cache.config
@@ -31,6 +31,7 @@ class MVCacheManager: NSObject {
         guard let d = self.cache[atURL.absoluteString] else {
             return nil
         }
+        d.relevance += 1
         return d.data
     }
     
@@ -40,20 +41,28 @@ class MVCacheManager: NSObject {
     }
 }
 
-internal struct CachedObject {
+@objc class CachedObject : NSObject {
     
     public var data : Data = Data()
     public var invalidateAfter: TimeInterval = 0.0 //(never)
     public var relevance : UInt = 0
+    public var timer = Timer()
     
     public init(_ data: Data, timerFrequency: TimeInterval, lifeTime: TimeInterval) {
+        super.init()
+        self.data = data
         self.invalidateAfter = lifeTime
-        let timer = Timer(timeInterval: timerFrequency, target: self, selector: Selector(("dropRelevance:")), userInfo: nil, repeats: true)
-        timer.fire()
+        self.timer = Timer(timeInterval: timerFrequency,
+                           target: self, 
+                           selector: #selector(self.dropRelevance(_:)),
+                           userInfo: nil, repeats: true)
+        self.timer.fire()
     }
     
-    private mutating func dropRelevance(timer: Timer){
-        self.relevance -= 1
+    @objc func dropRelevance(_ timer: Timer){
+        if self.relevance > 0 {
+            self.relevance -= 1
+        }
     }
     
 }
@@ -62,47 +71,92 @@ internal struct CacheConfig {
     
     var cacheSize : Int = 1024*1024*4 //default 4mb
     var relevanceDropTime : TimeInterval = 0.0
+    var relevanceThreshold : UInt = 4
 
 }
 
 internal struct Cache<Key : Hashable, Value> {
     
     fileprivate var contents : [Key: Value] = [:]
+    fileprivate var orderedKeys : [Key] = []
     
     fileprivate var config = CacheConfig()
     
-    public mutating func insert(path: Key, data: Value){
-        guard let _ = contents[path] else {
-            contents.updateValue(data, forKey: path)
-            return;
+    public mutating func insert (_ value: Value, forAddress: Key){
+        
+        if contents[forAddress] != nil {
+            return //data is cached
+        }
+        
+        if value.data.count > config.cacheSize {
+            return //data larger than cache size
+        }
+        
+        if  value.data.count > availableSpace {
+            return //not enough space
+        }else if value.data.count > freeSpace {
+            self.makeSpace(size: value.data.count)
+        }
+        
+        contents[forAddress] = value
+        orderedKeys.append(forAddress)
+    }
+    
+    public mutating func remove(key:Key){
+        guard let _ = contents[key] else {
+            return
+        }
+        contents[key]!.timer.invalidate()
+        contents.removeValue(forKey: key)
+        orderedKeys.remove(at: orderedKeys.index(of: key)! )
+    }
+    
+    public var freeSpace : Int {
+        get {
+            var usedSpace = 0
+            for object in contents.values {
+                usedSpace += object.data.count
+            }
+            return config.cacheSize - usedSpace
         }
     }
     
-    private func insertNewObject (key: String, value: CachedObject){
+    public var availableSpace : Int {
+        get {
+            var space = config.cacheSize
+            for object in contents.values {
+                if object.relevance >= config.relevanceThreshold {
+                    space -= object.data.count
+                }
+            }
+            return space
+        }
+    }
+    
+    public mutating func makeSpace(size: Int) {
         
-        //check if exists
-        //yes:
-        //  increment call count
-        //no:
-        //  check if smaller than cache size
-        //  yes:
-        //      check if smaller than available space
-        //      yes:
-        //          insert object
-        //          return true
-        //      no:
-        //          check if can delete objects until it fits
-        //          yes:
-        //              delete objects
-        //              insert object
-        //              return true
-        //          no:
-        //              return false
-        //  no:
-        //      return false
+        var freedSpace = freeSpace
+        var iterator = 0
+        
+        var toRemove = [Value]()
+        
+        while freedSpace < size {
+            if iterator < self.count {
+                if self[iterator]!.relevance < config.relevanceThreshold {
+                    freedSpace += self[iterator]!.data.count
+                    toRemove.append(self[iterator]!)
+                }
+                iterator += 1
+            }else { continue }
+        }
+        
+        for value in toRemove {
+            for key in self.allKeys(forValue: value) {
+                self[key] = nil
+            }
+        }
         
     }
-
 }
 
 extension Cache : Collection, ExpressibleByDictionaryLiteral {
@@ -113,7 +167,7 @@ extension Cache : Collection, ExpressibleByDictionaryLiteral {
     
     init<S: Sequence>(_ sequence: S) where S.Iterator.Element == (key: Key, value: Value) {
         for (k, v) in sequence {
-            insert(path: k, data: v)
+            insert(v, forAddress: k)
         }
     }
     
@@ -137,17 +191,38 @@ extension Cache : Collection, ExpressibleByDictionaryLiteral {
         return contents.index(after: i)
     }
     
+    func allKeys(forValue val: Value) -> [Key] {
+        return self.filter { $1 == val }.map { $0.0 }
+    }
+    
     subscript (key : String) -> Value? {
         get {
             return contents[key]
         }
         set (newValue) {
-            insert(path: key, data: newValue!)
+            if newValue == nil {
+                self.remove(key:key)
+            }else{
+                self.insert(newValue!, forAddress: key)
+            }
         }
     }
     
     subscript (position: Index) -> Iterator.Element {
-        return contents[position];
+        return contents[position]
+    }
+    
+    subscript(index: Int) -> Value? {
+        get {
+            precondition(index < orderedKeys.count, "out of bounds")
+            let k = orderedKeys[index]
+            return contents[k]!
+        }
+        set (newValue) {
+            if newValue == nil {
+                self.remove(key: orderedKeys[index])
+            }
+        }
     }
     
 }
