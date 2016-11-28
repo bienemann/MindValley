@@ -7,12 +7,20 @@
 //
 
 import UIKit
+import Foundation
 
 class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        MVCacheManager.shared.config.relevanceDropTime = TimeInterval(floatLiteral: 80)
+        MVDownloader.shared.download(url: URL(string:"http://google.com")!, cache: true,  invalidateAfter: 0, completion: { (data, response) in
+            
+        }, error:{ (error) in
+            
+        })
+        
     }
 
     override func didReceiveMemoryWarning() {
